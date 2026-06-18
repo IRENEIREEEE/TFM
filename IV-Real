@@ -1,0 +1,247 @@
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import contextily as ctx
+
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from matplotlib_scalebar.scalebar import ScaleBar
+
+# ==========================================
+# CARGAR CAPAS
+# ==========================================
+
+municipios = gpd.read_file(
+    r"C:\PRUEBA_TFM_PRO\municipios_distritos_SEMadrid.shp"
+)
+
+iv = gpd.read_file(
+    r"C:\TFM_FINAL\INFRAESTRUCTURA_VERDE\VECTORIAL\IV.shp"
+)
+
+conectores = gpd.read_file(
+    r"C:\TFM_FINAL\RUTA_OPTIMA\RUTA_IV_CONECTORES\Ruta_optima_IV_1.shp"
+)
+
+# ==========================================
+# PROYECCIÓN WEB
+# ==========================================
+
+municipios_web = municipios.to_crs(epsg=3857)
+iv_web = iv.to_crs(epsg=3857)
+conectores_web = conectores.to_crs(epsg=3857)
+
+# ==========================================
+# FIGURA
+# ==========================================
+
+fig, ax = plt.subplots(
+    figsize=(14,12)
+)
+
+# ==========================================
+# FONDO SATÉLITE
+# ==========================================
+
+municipios_web.boundary.plot(
+    ax=ax,
+    alpha=0
+)
+
+ctx.add_basemap(
+    ax,
+    source=ctx.providers.Esri.WorldImagery,
+    zoom=11
+)
+
+# ==========================================
+# INFRAESTRUCTURA VERDE
+# ==========================================
+
+iv_web.plot(
+    ax=ax,
+    color="#00A000",
+    alpha=0.70,
+    edgecolor="#006400",
+    linewidth=0.4,
+    zorder=2
+)
+
+# ==========================================
+# CONECTORES
+# HALO BLANCO
+# ==========================================
+
+conectores_web.plot(
+    ax=ax,
+    color="white",
+    linewidth=5,
+    zorder=3
+)
+
+# ==========================================
+# CONECTORES ROJOS
+# ==========================================
+
+conectores_web.plot(
+    ax=ax,
+    color="#CC0000",
+    linewidth=3,
+    zorder=4
+)
+
+# ==========================================
+# MUNICIPIOS
+# ==========================================
+
+municipios_web.boundary.plot(
+    ax=ax,
+    color="black",
+    linewidth=2,
+    zorder=5
+)
+
+# ==========================================
+# ESCALA
+# ==========================================
+
+scalebar = ScaleBar(
+    1,
+    units="m",
+    location="lower left",
+    box_alpha=0.9
+)
+
+ax.add_artist(scalebar)
+
+# ==========================================
+# FLECHA NORTE
+# ==========================================
+
+ax.annotate(
+    '',
+    xy=(0.06, 0.88),
+    xytext=(0.06, 0.72),
+    arrowprops=dict(
+        facecolor='black',
+        edgecolor='black',
+        width=2,
+        headwidth=10,
+        headlength=12
+    ),
+    xycoords='axes fraction'
+)
+
+ax.text(
+    0.06,
+    0.70,
+    'N',
+    transform=ax.transAxes,
+    ha='center',
+    va='center',
+    fontsize=12,
+    fontweight='bold'
+)
+
+# ==========================================
+# TOPONIMIA MUNICIPAL
+# ==========================================
+
+import matplotlib.patheffects as pe
+
+for idx, row in municipios_web.iterrows():
+
+    nombre = str(row["NAMEUNIT"])
+
+    # Corregir posibles problemas de codificación
+    nombre = nombre.replace("Martí­n", "Martín")
+
+    punto = row.geometry.representative_point()
+
+    ax.text(
+        punto.x,
+        punto.y,
+        nombre,
+        fontsize=8,
+        fontweight="bold",
+        color="white",
+        ha="center",
+        va="center",
+        zorder=100,
+        path_effects=[
+            pe.withStroke(
+                linewidth=2.5,
+                foreground="black"
+            )
+        ]
+    )
+
+# ==========================================
+# LEYENDA
+# ==========================================
+
+leyenda = [
+
+    Patch(
+        facecolor="#00A000",
+        edgecolor="#006400",
+        label="Infraestructura Verde"
+    ),
+
+    Line2D(
+        [0],[0],
+        color="#CC0000",
+        lw=4,
+        label="Conectores territoriales"
+    ),
+
+    Line2D(
+        [0],[0],
+        color="black",
+        lw=1,
+        label="Municipios"
+    )
+
+]
+
+ax.legend(
+    handles=leyenda,
+    title="LEYENDA",
+    loc="upper right",
+    fontsize=10,
+    title_fontsize=11,
+    frameon=True,
+    facecolor="white",
+    edgecolor="black",
+    framealpha=0.95
+)
+
+# ==========================================
+# TÍTULO
+# ==========================================
+
+plt.title(
+    "Infraestructura Verde y conectores territoriales del ámbito de estudio",
+    fontsize=16,
+    fontweight="bold",
+    pad=15
+)
+
+# ==========================================
+# LIMPIAR EJES
+# ==========================================
+
+ax.set_axis_off()
+
+# ==========================================
+# EXPORTAR
+# ==========================================
+
+plt.savefig(
+    r"C:\TFM_FINAL\MAPA_IV_CONECTORES_SATELITE.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+print("IV-Real")
