@@ -1,0 +1,220 @@
+# ==========================================
+# DETALLE DE CONECTOR PRIORITARIO
+# CON ORTOFOTO Y MUNICIPIOS
+# ==========================================
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import contextily as ctx
+import matplotlib.patheffects as pe
+
+# ==========================================
+# CARGAR CAPAS
+# ==========================================
+
+municipios = gpd.read_file(
+    r"C:\PRUEBA_TFM_PRO\municipios_distritos_SEMadrid.shp"
+)
+
+iv = gpd.read_file(
+    r"C:\TFM_FINAL\INFRAESTRUCTURA_VERDE\VECTORIAL\IV.shp"
+)
+
+conectores = gpd.read_file(
+    r"C:\TFM_FINAL\RUTA_OPTIMA\RUTA_IV_CONECTORES\Ruta_optima_IV_1.shp"
+)
+
+# ==========================================
+# CONECTOR A ANALIZAR
+# ==========================================
+
+PATHID_OBJETIVO = 27
+
+conector = conectores[
+    conectores["PATHID"] == PATHID_OBJETIVO
+]
+
+# ==========================================
+# PROYECCIÓN WEB MERCATOR
+# ==========================================
+
+municipios_web = municipios.to_crs(epsg=3857)
+iv_web = iv.to_crs(epsg=3857)
+conector_web = conector.to_crs(epsg=3857)
+
+# ==========================================
+# EXTENSIÓN DEL ZOOM
+# ==========================================
+
+xmin, ymin, xmax, ymax = conector_web.total_bounds
+
+margen = 10000
+
+xmin -= margen
+xmax += margen
+ymin -= margen
+ymax += margen
+
+# ==========================================
+# MUNICIPIOS CERCANOS
+# ==========================================
+
+buffer_geom = conector_web.geometry.iloc[0].buffer(6000)
+
+municipios_zoom = municipios_web[
+    municipios_web.intersects(buffer_geom)
+]
+
+# ==========================================
+# FIGURA
+# ==========================================
+
+fig, ax = plt.subplots(
+    figsize=(14,12)
+)
+
+# ==========================================
+# INFRAESTRUCTURA VERDE
+# ==========================================
+
+iv_web.plot(
+    ax=ax,
+    color="#00A000",
+    alpha=0.60,
+    edgecolor="#006400",
+    linewidth=0.4,
+    zorder=2
+)
+
+# ==========================================
+# MUNICIPIOS
+# ==========================================
+
+municipios_web.boundary.plot(
+    ax=ax,
+    color="white",
+    linewidth=3,
+    zorder=3
+)
+
+municipios_web.boundary.plot(
+    ax=ax,
+    color="black",
+    linewidth=1.5,
+    zorder=4
+)
+
+# ==========================================
+# CONECTOR RESALTADO
+# ==========================================
+
+conector_web.plot(
+    ax=ax,
+    color="yellow",
+    linewidth=10,
+    alpha=0.50,
+    zorder=5
+)
+
+conector_web.plot(
+    ax=ax,
+    color="white",
+    linewidth=6,
+    zorder=6
+)
+
+conector_web.plot(
+    ax=ax,
+    color="#CC0000",
+    linewidth=4,
+    zorder=7
+)
+
+# ==========================================
+# NOMBRES MUNICIPIOS
+# ==========================================
+
+for idx, row in municipios_zoom.iterrows():
+
+    nombre = str(row["NAMEUNIT"])
+
+    punto = row.geometry.representative_point()
+
+    ax.text(
+        punto.x,
+        punto.y,
+        nombre,
+        fontsize=11,
+        fontweight="bold",
+        color="white",
+        ha="center",
+        va="center",
+        zorder=100,
+        path_effects=[
+            pe.withStroke(
+                linewidth=3,
+                foreground="black"
+            )
+        ]
+    )
+
+# ==========================================
+# ZOOM
+# ==========================================
+
+ax.set_xlim(xmin, xmax)
+ax.set_ylim(ymin, ymax)
+
+# ==========================================
+# ORTOFOTO SATÉLITE
+# ==========================================
+
+ctx.add_basemap(
+    ax,
+    source=ctx.providers.Esri.WorldImagery,
+    zoom=14,
+    attribution=False
+)
+
+# ==========================================
+# TÍTULO
+# ==========================================
+
+plt.title(
+    "Detalle de un conector territorial prioritario entre áreas de Infraestructura Verde",
+    fontsize=16,
+    fontweight="bold",
+    pad=15
+)
+
+# ==========================================
+# QUITAR EJES
+# ==========================================
+
+ax.set_axis_off()
+
+# ==========================================
+# EXPORTAR
+# ==========================================
+# ==========================================
+# FUENTE
+# ==========================================
+
+plt.figtext(
+    0.5,
+    0.02,
+    "Fuente: Elaboración propia a partir de la Infraestructura Verde de la Comunidad de Madrid y ortofotografía PNOA.",
+    ha="center",
+    fontsize=10,
+    style="italic"
+)
+
+plt.savefig(
+    rf"C:\TFM_FINAL\Detalle_PATHID_{PATHID_OBJETIVO}.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+print("Ejemplo de un conector territorial")
